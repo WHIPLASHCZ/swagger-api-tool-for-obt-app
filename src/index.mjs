@@ -1,63 +1,65 @@
-import axios from "./tools/axios.mjs";
-import $RefParser from "@apidevtools/json-schema-ref-parser";
-import fs from "node:fs";
+#!/usr/bin/env node
+import inquirer from "inquirer";
+import { oss, obt } from "./constant/index.mjs";
+import { SwaggerConverter } from "./tools/core.mjs";
+import path from "node:path";
+import ora from "ora";
 
-async function test() {
-  const res = await axios.get("/v2/api-docs", {
-    params: { group: "obtForSms" },
-  });
-  // console.log(`res:`, res);
-  const { data } = res;
-  // console.log(`paths`, paths, definitions);
-  let schema = await $RefParser.dereference(data);
-  const { paths } = schema;
-  const arr = convert(paths);
-  console.log(arr);
-  // console.log(schema.paths);
-  // fs.writeFileSync("./test.json", JSON.stringify(schema.paths), {
-  //   encoding: "utf-8",
-  // });
+const swaggerConverter = new SwaggerConverter();
+
+async function getAnswers() {
+  return await inquirer.prompt([
+    {
+      type: "select",
+      name: "projectType",
+      message: "选择项目类型",
+      choices: ["obt", "oss"],
+    },
+    {
+      type: "select",
+      name: "businessType",
+      message: "选择业务类型",
+      choices: answers => (answers === "oss" ? oss : obt), // 动态生成选项
+    },
+    {
+      type: "select",
+      name: "tag",
+      message: "选择标签",
+      choices: async answers => {
+        const { businessType } = answers;
+        const spinner = ora("正在获取标签...").start();
+        await swaggerConverter.getSchemas(businessType);
+        spinner.stop();
+        return swaggerConverter.tags.map(item => item.name);
+      },
+    },
+    {
+      type: "checkbox",
+      name: "apis",
+      message: "选择要使用的接口",
+      choices: async answer => {
+        const { tag } = answer;
+        const paths = swaggerConverter.getPathsByTag(tag);
+        return paths;
+      },
+    },
+    {
+      type: "input",
+      name: "targetPath",
+      message: "输入目标路径",
+    },
+  ]);
 }
 
-function convert(paths, apis = ["/obt/findCorpSmsConfigList"]) {
-  let ret = [];
-  for (const api of apis) {
-    const info = paths[api];
-    // if (!info) continue;
-    const paramsTemplate = info.post.parameters[1].schema.properties;
-
-    const params = {};
-    for (const key in paramsTemplate) {
-      params[key] =
-        paramsTemplate[key].type === "array"
-          ? []
-          : paramsTemplate[key].type === "object"
-          ? {}
-          : "";
-    }
-    /**
-     * {
-     * 	name: 'travelPolicyDetail',
-	      method: 'post',
-	      desc: '酒店差旅政策详情查询',
-	      path: '/obt/travelPolicyDetail',
-	      params: {
-		        cityId: '', // 城市等级代码
-	        },
-        }
-     */
-    for (const method in info) {
-      ret.push({
-        method,
-        name: info[method].operationId,
-        desc: info[method].summary,
-        path: api,
-        params,
-      });
-    }
-  }
-
-  return ret;
+async function main() {
+  const answers = await getAnswers();
+  const { apis, targetPath } = answers;
+  const spinner = ora("正在写入文件...").start();
+  const fileContent = swaggerConverter.getObtApiFileContentByPathArr(apis);
+  swaggerConverter.writeResultFile(
+    path.resolve(process.cwd(), targetPath),
+    fileContent
+  );
+  spinner.stop();
 }
-
-test();
+main();
