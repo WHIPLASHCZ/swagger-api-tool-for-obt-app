@@ -1,6 +1,10 @@
 import axios from "./axios.mjs";
 import $RefParser from "@apidevtools/json-schema-ref-parser";
 import fs from "node:fs";
+import path from "node:path";
+import template from "@babel/template";
+import { changeCode } from "./babelTools.mjs";
+import prettier from "prettier";
 class SwaggerConverter {
   constructor() {
     this.tags = [];
@@ -60,8 +64,8 @@ class SwaggerConverter {
           paramsTemplate[key].type === "array"
             ? []
             : paramsTemplate[key].type === "object"
-            ? {}
-            : "";
+              ? {}
+              : "";
       /**
        * {
        * 	name: 'travelPolicyDetail',
@@ -73,9 +77,11 @@ class SwaggerConverter {
             },
           }
        */
+      const fragments = api.split("/");
+      const name = fragments[fragments.length - 1];
       ret.push({
         method,
-        name: info[method].operationId,
+        name,
         desc: info[method].summary,
         path: api,
         params,
@@ -89,14 +95,50 @@ class SwaggerConverter {
    * @param {string} target
    * @param {array} content
    */
-  writeResultFile(target, content) {
-    fs.writeFileSync(
-      target,
-      `export default ${JSON.stringify(content, undefined, 4)}`,
-      {
-        encoding: "utf-8",
-      }
-    );
+  async writeResultFile(target, content) {
+    let finalCode = "";
+    if (fs.existsSync(target)) {
+      finalCode = this.changeCodeOnOriginFileContent(target, content);
+    } else {
+      fs.mkdir(path.dirname(target), { recursive: true });
+      finalCode = `export default ${JSON.stringify(content, undefined, 4)}`;
+    }
+
+    finalCode = await prettier.format(finalCode, {
+      filepath: target,
+    });
+
+    fs.writeFileSync(target, finalCode, {
+      encoding: "utf-8",
+    });
+  }
+
+  changeCodeOnOriginFileContent(target, params) {
+    const sourceCode = fs.readFileSync(target, "utf-8");
+
+    function myPlugin() {
+      return {
+        visitor: {
+          Program(path) {
+            // 找到默认导出的那个数组
+            const exportDefaultDeclaration = path.node.body.find(
+              item => item.type === "ExportDefaultDeclaration"
+            );
+            const { declaration } = exportDefaultDeclaration;
+            const { elements } = declaration;
+
+            // 把要添加的api信息转换为ast
+            const ast = template.statement(JSON.stringify(params))();
+
+            // 然后将它们push到默认导出的那个数组里
+            elements.push(...ast.expression.elements);
+          },
+        },
+      };
+    }
+
+    const code = changeCode(sourceCode, [myPlugin]);
+    return code;
   }
 }
 

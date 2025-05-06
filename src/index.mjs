@@ -56,7 +56,7 @@ async function main() {
   const { apis, targetPath } = answers;
   const spinner = ora("正在写入文件...").start();
   const fileContent = swaggerConverter.getObtApiFileContentByPathArr(apis);
-  swaggerConverter.writeResultFile(
+  await swaggerConverter.writeResultFile(
     path.resolve(process.cwd(), targetPath),
     fileContent
   );

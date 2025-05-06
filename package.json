@@ -12,10 +12,15 @@
   "packageManager": "pnpm@10.4.1",
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^12.0.1",
+    "@babel/core": "^7.27.1",
+    "@babel/parser": "^7.27.1",
+    "@babel/template": "^7.27.1",
+    "@babel/types": "^7.27.1",
     "axios": "^1.8.4",
     "enquirer": "^2.4.1",
     "inquirer": "^12.6.0",
     "ora": "^8.2.0",
+    "prettier": "^3.5.3",
     "prompts": "^2.4.2"
   },
   "bin": {
