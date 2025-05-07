@@ -19,6 +19,7 @@ class SwaggerConverter {
     return await this.saveInfo(data);
   }
   async saveInfo(data) {
+    // $RefParser用于解析json中的引用
     let schema = await $RefParser.dereference(data);
     const { tags, paths, definitions } = schema;
     this.tags = tags;
@@ -100,7 +101,7 @@ class SwaggerConverter {
     if (fs.existsSync(target)) {
       finalCode = this.changeCodeOnOriginFileContent(target, content);
     } else {
-      fs.mkdir(path.dirname(target), { recursive: true });
+      fs.mkdirSync(path.dirname(target), { recursive: true });
       finalCode = `export default ${JSON.stringify(content, undefined, 4)}`;
     }
 

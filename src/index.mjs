@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import inquirer from "inquirer";
-import { oss, obt } from "./constant/index.mjs";
+import { oss, ossMap, obt, obtMap } from "./constant/index.mjs";
 import { SwaggerConverter } from "./tools/core.mjs";
 import path from "node:path";
 import ora from "ora";
@@ -17,7 +17,7 @@ async function getAnswers() {
     },
     {
       type: "select",
-      name: "businessType",
+      name: "businessTypeName",
       message: "选择业务类型",
       choices: answers => (answers === "oss" ? oss : obt), // 动态生成选项
     },
@@ -26,7 +26,11 @@ async function getAnswers() {
       name: "tag",
       message: "选择标签",
       choices: async answers => {
-        const { businessType } = answers;
+        const { businessTypeName, projectType } = answers;
+        const businessType =
+          projectType === "oss"
+            ? ossMap[businessTypeName]
+            : obtMap[businessTypeName];
         const spinner = ora("正在获取标签...").start();
         await swaggerConverter.getSchemas(businessType);
         spinner.stop();
