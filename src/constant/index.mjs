@@ -87,3 +87,8 @@ export const obtMap = {
   商城: "YMall",
   Singa基础数据: "Singa",
 };
+
+
+export const SWAGGER_HOST = "http://192.168.0.229:13000";
+
+export const chromePath = `C:\\Users\\Administrator\\.cache\\puppeteer\\chrome\\win64-134.0.6998.35\\chrome-win64\\chrome.exe`
