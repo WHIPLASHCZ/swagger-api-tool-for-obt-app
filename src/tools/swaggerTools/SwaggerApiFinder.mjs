@@ -30,7 +30,7 @@ class SwaggerApiFinder {
         } else {
             throw new Error('项目类型必须是OSS或OBT')
         }
-        return '未找到目标接口！'
+        throw new Error('未找到目标接口！')
 
     }
 

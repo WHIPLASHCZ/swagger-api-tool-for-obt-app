@@ -1,3 +1,8 @@
+import path from 'node:path'
+import fs from 'node:fs'
+
+export const SWAGGER_HOST = "http://192.168.0.229:13000";
+
 export const oss = [
   "系统",
   "机票",
@@ -88,7 +93,11 @@ export const obtMap = {
   Singa基础数据: "Singa",
 };
 
-
-export const SWAGGER_HOST = "http://192.168.0.229:13000";
-
-export const chromePath = `C:\\Users\\Administrator\\.cache\\puppeteer\\chrome\\win64-134.0.6998.35\\chrome-win64\\chrome.exe`
+export const chromePath = (() => {
+  const settingPath = path.resolve(import.meta.dirname, '../../', 'settings.json');
+  if (!fs.existsSync(settingPath)) throw new Error('请先配置setting.json！');
+  const res = fs.readFileSync(settingPath, 'utf-8');
+  const json = JSON.parse(res);
+  if (!json.chromePath) throw new Error('请在setting.json中配置chromePath字段！');
+  return json.chromePath
+})();
