@@ -21,7 +21,7 @@ obt-api write-api
 - 特性：
   - 引导式选择项目类型（OSS/OBT）
   - 支持选择业务模块和API标签
-  - 生成TypeScript/JavaScript/Python客户端代码
+  - 生成与现在的散客APP/企业APP中api文件格式一致的代码
   - 自动合并到现有文件或创建新文件
 
 ## 📋 使用示例
