@@ -6,16 +6,19 @@ import template from "@babel/template";
 import { changeCode } from "../babelTools.mjs";
 import prettier from "prettier";
 import { getApiDocs } from "../../apis/index.mjs";
+
 class SwaggerConverter {
   constructor() {
     this.tags = [];
     this.paths = {};
     this.definitions = {};
   }
+
   async getSchemas(group, prefix = 'obtFor') {
     const res = await getApiDocs({ group: `${prefix}${group}` });
     return await this.saveInfo(res);
   }
+
   async saveInfo(data) {
     // $RefParser用于解析json中的引用
     let schema = await $RefParser.dereference(data);

@@ -6,12 +6,6 @@ import { sleep } from '../tools/common.mjs';
 
 const swaggerApiFinder = new SwaggerApiFinder()
 
-
-/**
- *
- * @param {*} version 版本号
- * @returns chromium的可执行路径
- */
 const openBrowser = async () => await puppeteer.launch({
     headless: false,
     executablePath: chromePath,
@@ -37,7 +31,7 @@ const findApiDocLocationInPage = async (targetPath, tag, operationId) => {
     const targetA = await title.$('.toggleOperation')
     if (targetA) {
         await targetA.click()
-        await sleep(400);
+        await sleep(400);   //等待点击后触发的展开动画播放完毕
         // const boundingBox = await targetA.boundingBox();
         await page.evaluate(el => {
             el.scrollIntoView({ behavior: 'smooth', block: 'start' });
