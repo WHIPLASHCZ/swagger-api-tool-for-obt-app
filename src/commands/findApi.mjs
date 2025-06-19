@@ -1,12 +1,12 @@
 import SwaggerApiFinder from '../tools/swaggerTools/SwaggerApiFinder.mjs'
 import puppeteer from 'puppeteer';
 import path from 'node:path'
-import { chromePath } from '../constant/index.mjs'
-import { sleep } from '../tools/common.mjs';
+// import { getChromePath } from '../constant/index.mjs'
+import { sleep,getOrSetChromePath } from '../tools/common.mjs';
 
 const swaggerApiFinder = new SwaggerApiFinder()
 
-const openBrowser = async () => await puppeteer.launch({
+const openBrowser = async (chromePath) => await puppeteer.launch({
     headless: false,
     executablePath: chromePath,
     defaultViewport: {
@@ -16,7 +16,8 @@ const openBrowser = async () => await puppeteer.launch({
 });
 
 const findApiDocLocationInPage = async (targetPath, tag, operationId) => {
-    const browser = await openBrowser()
+    const chromePath = await getOrSetChromePath();
+    const browser = await openBrowser(chromePath)
     const page = await browser.newPage();
     await page.goto(targetPath);
     await page.waitForSelector('#resources')

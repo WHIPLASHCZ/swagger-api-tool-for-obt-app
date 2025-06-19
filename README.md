@@ -41,12 +41,4 @@ obt-api write-api
 obt-api find-api /obt/order/detail
 ```
 
-## ⚙️ 配置文件说明
-若要使用findApi命令，需要在`settings.json`中配置chrome.exe的路径，示例：
-```json
-{
-  "chromePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-}
-```
-
         

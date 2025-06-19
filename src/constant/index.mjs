@@ -93,11 +93,11 @@ export const obtMap = {
   Singa基础数据: "Singa",
 };
 
-export const chromePath = (() => {
-  const settingPath = path.resolve(import.meta.dirname, '../../', 'settings.json');
-  if (!fs.existsSync(settingPath)) throw new Error('请先配置setting.json！');
-  const res = fs.readFileSync(settingPath, 'utf-8');
-  const json = JSON.parse(res);
-  if (!json.chromePath) throw new Error('请在setting.json中配置chromePath字段！');
-  return json.chromePath
-})();
+// export const getChromePath = () => {
+//   const settingPath = path.resolve(import.meta.dirname, '../../', 'settings.json');
+//   if (!fs.existsSync(settingPath))  return null; //throw new Error('请先配置setting.json！');
+//   const res = fs.readFileSync(settingPath, 'utf-8');
+//   const json = JSON.parse(res);
+//   if (!json.chromePath) return null;   //throw new Error('请在setting.json中配置chromePath字段！');
+//   return json.chromePath
+// };
