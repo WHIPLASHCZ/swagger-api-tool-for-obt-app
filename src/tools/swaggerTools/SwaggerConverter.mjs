@@ -14,7 +14,7 @@ class SwaggerConverter {
     this.definitions = {};
   }
 
-  async getSchemas(group, prefix = 'obtFor') {
+  async getSchemas(group, prefix = "obtFor") {
     const res = await getApiDocs({ group: `${prefix}${group}` });
     return await this.saveInfo(res);
   }
@@ -57,8 +57,10 @@ class SwaggerConverter {
     for (const currentInfo of paths) {
       const [api, method] = currentInfo.split("-");
       const info = this.paths[api];
-      if (!info) continue;
-      const schema = info[method].parameters[1].schema;
+      if (!info || !info[method]) continue;
+      const schema = info[method].parameters[1]
+        ? info[method].parameters[1].schema
+        : {};
       const paramsTemplate = schema ? schema.properties : {};
       const params = {};
       for (const key in paramsTemplate)
@@ -98,13 +100,16 @@ class SwaggerConverter {
    * @param {array} content
    */
   async writeResultFile(target, content) {
-    let finalCode = "";
-    if (fs.existsSync(target)) {
-      finalCode = this.changeCodeOnOriginFileContent(target, content);
-    } else {
+    if (!fs.existsSync(target))
       fs.mkdirSync(path.dirname(target), { recursive: true });
-      finalCode = `export default ${JSON.stringify(content, undefined, 4)}`;
-    }
+    const fileContent = fs
+      .readFileSync(target, "utf-8")
+      .replaceAll(" ", "")
+      .replaceAll("\n", "")
+      .replaceAll("\r", "");
+    let finalCode = fileContent
+      ? this.changeCodeOnOriginFileContent(target, content)
+      : `export default ${JSON.stringify(content, undefined, 4)}`;
 
     finalCode = await prettier.format(finalCode, {
       filepath: target,
@@ -117,15 +122,15 @@ class SwaggerConverter {
 
   changeCodeOnOriginFileContent(target, params) {
     const sourceCode = fs.readFileSync(target, "utf-8");
-
     function myPlugin() {
       return {
         visitor: {
           Program(path) {
             // 找到默认导出的那个数组
-            const exportDefaultDeclaration = path.node.body.find(
+            let exportDefaultDeclaration = path.node.body.find(
               item => item.type === "ExportDefaultDeclaration"
             );
+
             const { declaration } = exportDefaultDeclaration;
             const { elements } = declaration;
 
@@ -139,7 +144,7 @@ class SwaggerConverter {
       };
     }
 
-    const code = changeCode(sourceCode, [myPlugin]);
+    const code = changeCode(sourceCode, [myPlugin], path.basename(target));
     return code;
   }
 }

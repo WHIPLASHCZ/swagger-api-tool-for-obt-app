@@ -1,5 +1,5 @@
-import path from 'node:path'
-import fs from 'node:fs'
+import path from "node:path";
+import fs from "node:fs";
 
 export const SWAGGER_HOST = "http://192.168.0.229:13000";
 
@@ -14,8 +14,8 @@ export const oss = [
   "呼叫中心",
   "财务",
   "机场服务",
-  "接送机",
-  "代办值机",
+  // "接送机",
+  // "代办值机",
   "差旅",
   "签证",
   "车船票",
@@ -40,8 +40,8 @@ export const ossMap = {
   呼叫中心: "MessCenter",
   财务: "Finance",
   机场服务: "Airport",
-  接送机: "Parking",
-  代办值机: "Agent",
+  // 接送机: "Parking",
+  // 代办值机: "Agent",
   差旅: "Travel",
   签证: "Visa",
   车船票: "Ship",
