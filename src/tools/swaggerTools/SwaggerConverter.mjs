@@ -7,11 +7,32 @@ import { changeCode } from "../babelTools.mjs";
 import prettier from "prettier";
 import { getApiDocs } from "../../apis/index.mjs";
 
+function filterUndefinedRefs(definitions) {
+  const ret = {};
+  for (const key in definitions) {
+    const def = definitions[key];
+    if ("additionalProperties" in def) {
+      const additionalProperties = def["additionalProperties"];
+      const $ref = additionalProperties["$ref"];
+      const refKey = $ref ? $ref.replace("#/definitions/", "") : null;
+      if (refKey && definitions[refKey] === undefined) {
+        // 如果引用的定义不存在，则用空对象替代
+        ret[refKey] = {
+          type: "object",
+          properties: {},
+        };
+      }
+    }
+    ret[key] = def;
+  }
+  return ret;
+}
+
 class SwaggerConverter {
   constructor() {
     this.tags = [];
     this.paths = {};
-    this.definitions = {};
+    // this.definitions = {};
   }
 
   async getSchemas(group, prefix = "obtFor") {
@@ -20,12 +41,22 @@ class SwaggerConverter {
   }
 
   async saveInfo(data) {
-    // $RefParser用于解析json中的引用
-    let schema = await $RefParser.dereference(data);
-    const { tags, paths, definitions } = schema;
-    this.tags = tags;
-    this.paths = paths;
-    this.definitions = definitions;
+    // 处理可能报错的引用
+    const editedData = {
+      ...data,
+      definitions: filterUndefinedRefs(data.definitions),
+    };
+    try {
+      let schema = await $RefParser.dereference(editedData, {
+        continueOnError: true,
+      });
+      const { tags, paths } = schema;
+      this.tags = tags;
+      this.paths = paths;
+      // this.definitions = definitions;
+    } catch (err) {
+      console.error("Error parsing schema:", err);
+    }
   }
 
   /**
@@ -52,6 +83,55 @@ class SwaggerConverter {
    * @param {string[]} paths
    * @returns string
    */
+  // getObtApiFileContentByPathArr(paths) {
+  //   let ret = [];
+  //   for (const currentInfo of paths) {
+  //     const [api, method] = currentInfo.split("-");
+  //     const info = this.paths[api];
+  //     if (!info || !info[method]) continue;
+  //     const schema = info[method].parameters[1]
+  //       ? info[method].parameters[1].schema
+  //       : {};
+  //     const paramsTemplate = schema ? schema.properties : {};
+  //     const params = {};
+  //     for (const key in paramsTemplate) {
+  //       console.log(`paramsTemplate[key]`, paramsTemplate[key]);
+  //       params[key] =
+  //         paramsTemplate[key].type === "array"
+  //           ? []
+  //           : paramsTemplate[key].type === "object"
+  //             ? {}
+  //             : "";
+  //     }
+
+  //     /**
+  //      * {
+  //      * 	name: 'travelPolicyDetail',
+  //         method: 'post',
+  //         desc: '酒店差旅政策详情查询',
+  //         path: '/obt/travelPolicyDetail',
+  //         params: {
+  //             cityId: '', // 城市等级代码
+  //           },
+  //         }
+  //      */
+  //     const fragments = api.split("/");
+  //     const name = fragments[fragments.length - 1];
+  //     ret.push({
+  //       method,
+  //       name,
+  //       desc: info[method].summary,
+  //       path: api,
+  //       params,
+  //     });
+  //   }
+  //   return ret;
+  // }
+  /**
+   *
+   * @param {string[]} paths
+   * @returns string
+   */
   getObtApiFileContentByPathArr(paths) {
     let ret = [];
     for (const currentInfo of paths) {
@@ -62,14 +142,19 @@ class SwaggerConverter {
         ? info[method].parameters[1].schema
         : {};
       const paramsTemplate = schema ? schema.properties : {};
-      const params = {};
-      for (const key in paramsTemplate)
-        params[key] =
-          paramsTemplate[key].type === "array"
-            ? []
-            : paramsTemplate[key].type === "object"
-              ? {}
-              : "";
+      let params = `{\n`;
+      for (const key in paramsTemplate) {
+        const { description, type } = paramsTemplate[key];
+        if (type === "array") {
+          params += `${key}: [],  // ${description} \n`;
+        } else if (type === "object") {
+          params += `${key}: {},  // ${description} \n`;
+        } else {
+          params += `${key}: "",  // ${description} \n`;
+        }
+      }
+      params += "},\n";
+
       /**
        * {
        * 	name: 'travelPolicyDetail',
@@ -83,21 +168,22 @@ class SwaggerConverter {
        */
       const fragments = api.split("/");
       const name = fragments[fragments.length - 1];
-      ret.push({
-        method,
-        name,
-        desc: info[method].summary,
-        path: api,
-        params,
-      });
+      ret.push(`{
+        method:"${method}",
+        name:"${name}",
+        desc: "${info[method].summary}",
+        path: "${api}",
+        params:${params}
+      }`);
     }
-    return ret;
+    return `[
+    ${ret.join(",\n")}
+    ]`;
   }
-
   /**
    *
    * @param {string} target
-   * @param {array} content
+   * @param {string} content
    */
   async writeResultFile(target, content) {
     if (!fs.existsSync(target))
@@ -107,10 +193,13 @@ class SwaggerConverter {
       .replaceAll(" ", "")
       .replaceAll("\n", "")
       .replaceAll("\r", "");
+    // let finalCode = fileContent
+    //   ? this.changeCodeOnOriginFileContent(target, content)
+    //   : `export default ${JSON.stringify(content, undefined, 4)}`;
     let finalCode = fileContent
       ? this.changeCodeOnOriginFileContent(target, content)
-      : `export default ${JSON.stringify(content, undefined, 4)}`;
-
+      : `export default ${content}`;
+    console.log(`finalCode`, finalCode);
     finalCode = await prettier.format(finalCode, {
       filepath: target,
     });
@@ -135,10 +224,24 @@ class SwaggerConverter {
             const { elements } = declaration;
 
             // 把要添加的api信息转换为ast
-            const ast = template.statement(JSON.stringify(params))();
+            // const ast = template.statement(JSON.stringify(params))();
 
-            // 然后将它们push到默认导出的那个数组里
-            elements.push(...ast.expression.elements);
+            // const ast = template.statement(params, {
+            //   preserveComments: true,
+            // })();
+            // // 然后将它们push到默认导出的那个数组里
+            // elements.push(...ast.expression.elements);
+
+            // ✅ 用 template.program 保留多行结构
+            const build = template.program(params, {
+              preserveComments: true,
+              sourceType: "module",
+              attachComment: true,
+            });
+
+            const ast = build();
+
+            elements.push(...ast.body[0].expression.elements);
           },
         },
       };

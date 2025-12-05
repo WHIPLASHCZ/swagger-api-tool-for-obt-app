@@ -13,6 +13,10 @@ export function changeCode(sourceCode, changeCodePlugins, filename) {
   const res = transformFromAstSync(ast, sourceCode, {
     plugins: changeCodePlugins || [],
     filename,
+    retainLines: true, // ✅ 保留原始行号和换行
+    comments: true, // ✅ 保留注释
+    compact: false, // ✅ 不压缩代码
+    // retainFunctionParens: true,
   });
 
   return res ? res.code : "";

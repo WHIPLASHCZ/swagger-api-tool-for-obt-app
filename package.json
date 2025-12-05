@@ -1,6 +1,6 @@
 {
   "name": "@qge/swagger-api-tool-for-obt-app",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "",
   "main": "src/index.mjs",
   "module": "src/index.mjs",
